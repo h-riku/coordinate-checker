@@ -1,6 +1,6 @@
 streamlit
 opencv-python
 mediapipe
-scikit-learn
-pillow
 numpy
+scikit-learn
+Pillow
