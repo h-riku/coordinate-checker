@@ -130,8 +130,8 @@ if uploaded_file:
             advice = get_advice(judgment)
 
             # 色チップ表示用HTML
-            top_color_html = f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb{top_color_rgb}; border:1px solid #000; margin-right:8px;'></div>"
-            bottom_color_html = f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb{bottom_color_rgb}; border:1px solid #000; margin-right:8px;'></div>"
+            top_color_html = f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb({top_color_rgb[0]}, {top_color_rgb[1]}, {top_color_rgb[2]}); border:1px solid #000; margin-right:8px;'></div>"
+            bottom_color_html = f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb({bottom_color_rgb[0]}, {bottom_color_rgb[1]}, {bottom_color_rgb[2]}); border:1px solid #000; margin-right:8px;'></div>"
 
             # 表示
             st.image(image, caption="アップロード画像", use_column_width=True)
