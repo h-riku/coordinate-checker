@@ -89,6 +89,13 @@ st.set_page_config(page_title="コーディネート診断", layout="centered")
 st.title("👕👖 コーディネートはこーでねーと")
 
 uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
+camera_file = st.camera_input("📷 またはカメラで撮影")
+
+image_file = uploaded_file or camera_file  # どちらかが使えるなら使う
+
+if image_file:
+    image = Image.open(image_file)
+    img_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
 if uploaded_file:
     image = Image.open(uploaded_file)
