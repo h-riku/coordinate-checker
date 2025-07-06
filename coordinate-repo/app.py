@@ -88,7 +88,7 @@ def get_advice(judgment):
 st.set_page_config(page_title="コーディネート診断", layout="centered")
 st.title("👕👖 コーディネートはこーでねーと")
 
-uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
+uploaded_file = st.file_uploader("服装画像をアップロードしてください(全身が写っているものがいいです)", type=["jpg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
@@ -120,6 +120,13 @@ if uploaded_file:
 
             top_color = get_dominant_color(top_region)
             bottom_color = get_dominant_color(bottom_region)
+            img_copy = img_bgr.copy()
+            cv2.rectangle(img_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)  # トップス
+            cv2.rectangle(img_copy, (x1, y2), (x2, y3), (255, 0, 0), 2)  # ボトムス
+
+            # RGB に戻して表示
+            img_rgb = cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB)
+            st.image(img_rgb, caption="検出領域を表示した画像", use_column_width=True)
 
             # BGR → RGB 変換
             top_color_rgb = (top_color[2], top_color[1], top_color[0])
