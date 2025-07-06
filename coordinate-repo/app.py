@@ -119,9 +119,9 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         allowed_keywords = ["無難", "控えめ", "許容範囲"]
         
         # 1. 固定色に近い色を探索
-        for delta_h in [-45, -20, 20, 45]:
-            for delta_s in [-50, 0, 50]:
-                for delta_v in [-50, 0, 50]:
+        for delta_h in [-120, -90, -60, -30, 0, 30, 60, 90, 120]:
+            for delta_s in [-120, -90, -60, -30, 0, 30, 60, 90, 120]:
+                for delta_v in [-120, -90, -60, -30, 0, 30, 60, 90, 120]:
                     nh = (int(h) + delta_h) % 180
                     ns = np.clip(int(s) + delta_s, 30, 255)
                     nv = np.clip(int(v) + delta_v, 30, 255)
