@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
 
-# 代表色取得
 def get_dominant_color(region, k=1):
     data = region.reshape((-1, 3))
     data = data[np.any(data != [255, 255, 255], axis=1)]
@@ -14,7 +13,6 @@ def get_dominant_color(region, k=1):
     kmeans = KMeans(n_clusters=k, random_state=0).fit(data)
     return tuple(map(int, kmeans.cluster_centers_[0]))
 
-# 色の組み合わせ判定（以前の関数を使用）
 def color_combination_level_improved(color1_bgr, color2_bgr):
     def bgr_to_hsv(bgr):
         hsv = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)
@@ -67,24 +65,46 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
 
 def get_advice(judgment):
     if "奇抜" in judgment:
-        return "💡 アドバイス: 派手な印象を和らげたい場合は、どちらかを中間色や低彩度に変えてみましょう。"
-    return "👍 特に問題のない組み合わせです。"
+        return "💡 アドバイス: 色がかなり目立つので、落ち着いた色味のアクセサリーや小物を合わせるとバランスが取れます。\n"
+            "または、どちらか一方の色を抑えめの中間色にすると良いでしょう。"
 
-# 季節パレット（HSVで定義）
+    return "👍 特に問題のない組み合わせです。自信を持って出かけましょう！"
+
 season_palettes = {
-    "春": [(30, 80, 220), (150, 50, 230), (20, 70, 210)],    # パステル系
-    "夏": [(90, 150, 200), (110, 120, 240), (0, 0, 255)],   # さわやか系
-    "秋": [(15, 180, 150), (25, 170, 130), (10, 200, 120)], # アースカラー系
-    "冬": [(120, 200, 80), (0, 0, 50), (140, 190, 60)],     # 深み・モノトーン系
+    "春": [(30, 80, 220), (150, 50, 230), (20, 70, 210)],
+    "夏": [(90, 150, 200), (110, 120, 240), (0, 0, 255)],
+    "秋": [(15, 180, 150), (25, 170, 130), (10, 200, 120)],
+    "冬": [(120, 200, 80), (0, 0, 50), (140, 190, 60)],
 }
 
-def generate_alternative_colors(fixed_color_bgr, season, change_target="top"):
-    palette_hsv = [np.uint8([[[h, s, v]]]) for (h, s, v) in season_palettes[season]]
-    palette_bgr = [cv2.cvtColor(c, cv2.COLOR_HSV2BGR)[0][0] for c in palette_hsv]
-
+def generate_alternative_colors(fixed_color_bgr, season=None, change_target="top"):
     fixed_hsv = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
 
     suggestions = []
+
+    if season is None:  # 季節なしは幅広い色変化で生成
+        h, s, v = int(fixed_hsv[0]), int(fixed_hsv[1]), int(fixed_hsv[2])
+        for delta_h in range(-90, 91, 30):
+            for delta_s in [-60, -30, 0, 30]:
+                for delta_v in [-60, -30, 0, 30]:
+                    nh = (h + delta_h) % 180
+                    ns = np.clip(s + delta_s, 30, 255)
+                    nv = np.clip(v + delta_v, 30, 255)
+                    new_hsv = np.uint8([[[nh, ns, nv]]])
+                    new_bgr = cv2.cvtColor(new_hsv, cv2.COLOR_HSV2BGR)[0][0]
+                    new_bgr_tuple = tuple(int(x) for x in new_bgr)
+                    if change_target == "top":
+                        judgment = color_combination_level_improved(new_bgr_tuple, fixed_color_bgr)
+                    else:
+                        judgment = color_combination_level_improved(fixed_color_bgr, new_bgr_tuple)
+                    if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
+                        suggestions.append((new_bgr_tuple, judgment))
+        return suggestions[:5]
+
+    # 季節指定ありの場合（従来の季節パレットに寄せる方式）
+    palette_hsv = [np.uint8([[[h, s, v]]]) for (h, s, v) in season_palettes[season]]
+    palette_bgr = [cv2.cvtColor(c, cv2.COLOR_HSV2BGR)[0][0] for c in palette_hsv]
+
     for base_bgr in palette_bgr:
         base_hsv = cv2.cvtColor(np.uint8([[base_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
         for delta_h in [-15, 0, 15]:
@@ -106,11 +126,11 @@ def generate_alternative_colors(fixed_color_bgr, season, change_target="top"):
 
     return suggestions[:3]
 
-# Streamlit UI設定
-st.set_page_config(page_title="コーディネート診断（季節対応版）", layout="centered")
-st.title("👕👖 コーディネートはこーでねーと（季節感付き）")
+# Streamlit UI
+st.set_page_config(page_title="コーディネートはこーでねーと", layout="centered")
+st.title("👕👖 コーディネートはこーでねーと")
 
-season = st.selectbox("季節を選んでください", ["春", "夏", "秋", "冬"])
+season = st.selectbox("季節を選んでください", ["選択なし", "春", "夏", "秋", "冬"])
 
 uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
 
@@ -157,10 +177,13 @@ if uploaded_file:
             st.markdown(f"### 🎨 判定結果:\n{judgment}")
             st.markdown(f"### 💬 アドバイス:\n{advice}")
 
-            st.markdown("### 🧩 代替コーディネート提案（季節感あり）")
+            st.markdown("### 🧩 代替コーディネート提案")
 
-            top_suggestions = generate_alternative_colors(bottom_color, season, change_target="top")
-            bottom_suggestions = generate_alternative_colors(top_color, season, change_target="bottom")
+            # 季節選択が「選択なし」の場合は None を渡す
+            season_arg = None if season == "選択なし" else season
+
+            top_suggestions = generate_alternative_colors(bottom_color, season_arg, change_target="top")
+            bottom_suggestions = generate_alternative_colors(top_color, season_arg, change_target="bottom")
 
             if top_suggestions:
                 st.markdown("#### 👕 トップスを変えるなら？")
