@@ -66,7 +66,7 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
 def get_advice(judgment):
     if "奇抜" in judgment:
         return "💡 アドバイス: 色がかなり目立つので、落ち着いた色味のアクセサリーや小物を合わせるとバランスが取れます。\n"
-            "または、どちらか一方の色を抑えめの中間色にすると良いでしょう。"
+"または、どちらか一方の色を抑えめの中間色にすると良いでしょう。"
 
     return "👍 特に問題のない組み合わせです。自信を持って出かけましょう！"
 
