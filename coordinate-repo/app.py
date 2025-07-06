@@ -89,32 +89,51 @@ season_palettes = {
 }
 
 # ========================
-# 【改善】代替カラーを提案する関数
+# 【改良】代替カラーを提案する関数
 # ========================
 def generate_alternative_colors(fixed_color_bgr, season, is_top):
     """
-    固定色と季節に基づき、相性の良い代替色を生成する
+    固定色と季節に基づき、相性の良い代替色を生成する。
+    入力色に応じてベースカラーを動的に変更し、提案の多様性と質を向上させる。
     :param fixed_color_bgr: 基準となる色 (BGR)
     :param season: "春", "夏", "秋", "冬" または "選択なし"
     :param is_top: Trueならトップス、Falseならボトムスの色を提案
     :return: (提案色BGR, 判定結果) のタプルのリスト
     """
     suggestions = []
+    h, s, v = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
+
+    # ===== 変更点: 固定色の明るさに応じてベースカラーを動的に取得 =====
+    base_colors_bgr = get_dynamic_base_colors(v)
     
-    # 探索する色の候補を生成
-    candidate_hsvs = []
+    # BGRからHSVに変換して候補リストの初期値とする
+    candidate_hsvs = [
+        tuple(cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)[0][0]) 
+        for bgr in base_colors_bgr
+    ]
+
+    # --- 以降のロジックは前回と同様 ---
+    
+    # 提案に含める判定結果を場合分け
     if season == "選択なし":
-        # 総当たりで相性の良い色を探索
-        h, s, v = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
-        for delta_h in [-90, -45, -20, 20, 45, 90]:
+        allowed_keywords = ["無難", "控えめ", "許容範囲"]
+        
+        # 1. 固定色に近い色を探索
+        for delta_h in [-45, -20, 20, 45]:
             for delta_s in [-50, 0, 50]:
                 for delta_v in [-50, 0, 50]:
                     nh = (int(h) + delta_h) % 180
                     ns = np.clip(int(s) + delta_s, 30, 255)
                     nv = np.clip(int(v) + delta_v, 30, 255)
                     candidate_hsvs.append((nh, ns, nv))
-    else:
-        # 季節パレットから候補を生成
+
+        # 2. 補色（反対色）を候補に追加
+        comp_h = (int(h) + 90) % 180
+        candidate_hsvs.append((comp_h, np.clip(s, 100, 200), np.clip(v, 100, 200)))
+        candidate_hsvs.append((comp_h, 80, 150))
+        
+    else: # 季節選択時
+        allowed_keywords = ["無難", "控えめ", "許容範囲"]
         for base_hsv in season_palettes[season]:
             for delta_v in [-40, 0, 40]:
                 nh, ns, nv = base_hsv
@@ -130,12 +149,48 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         
         judgment = color_combination_level_improved(top_color, bottom_color)
 
-        if any(word in judgment for word in ["無難", "控えめ"]):
+        if any(word in judgment for word in allowed_keywords):
             suggestions.append((new_bgr_tuple, judgment))
 
     # 重複を除き、最大5件を返す
     unique_suggestions = list({s[0]: s for s in suggestions}.values())
-    return unique_suggestions[:5]
+    return unique_suggestions[:5]# ========================
+# 【NEW】動的にベースカラーを生成する関数
+# ========================
+def get_dynamic_base_colors(v_value):
+    """
+    入力色の明度(v_value)に基づき、相性の良いベースカラーのリストを動的に生成する。
+    :param v_value: 入力色の明度 (0-255)
+    :return: BGR色のタプルのリスト
+    """
+    # 明るさに関わらず使いやすい定番色
+    staple_colors = [
+        (205, 220, 235),  # ベージュ
+        (130, 70, 20),    # デニムブルー
+    ]
+    
+    # 入力色が明るい場合 (v_value > 170) は、暗い色をベースにする
+    if v_value > 170:
+        dynamic_neutrals = [
+            (128, 128, 128),  # ミドルグレー
+            (80, 40, 0),      # ネイビー
+            (50, 50, 50),     # チャコールグレー
+        ]
+    # 入力色が暗い場合 (v_value < 85) は、明るい色をベースにする
+    elif v_value < 85:
+        dynamic_neutrals = [
+            (245, 245, 245),  # オフホワイト
+            (210, 210, 210),  # ライトグレー
+        ]
+    # 中間の明るさの場合は、標準的な組み合わせ
+    else:
+        dynamic_neutrals = [
+            (245, 245, 245),  # オフホワイト
+            (128, 128, 128),  # ミドルグレー
+            (50, 50, 50),     # チャコールグレー
+        ]
+        
+    return staple_colors + dynamic_neutrals
 
 # ========================
 # Streamlit アプリ本体
