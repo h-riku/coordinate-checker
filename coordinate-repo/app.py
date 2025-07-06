@@ -9,10 +9,12 @@ from PIL import Image
 # 代表色を取得する関数
 # ========================
 def get_dominant_color(region, k=1):
+    """画像領域から代表色を抽出する"""
     data = region.reshape((-1, 3))
+    # 白(背景など)を除外して計算
     data = data[np.any(data != [255, 255, 255], axis=1)]
     if len(data) == 0:
-        return (255, 255, 255)
+        return (255, 255, 255) # 画像がない場合は白を返す
     # n_init='auto' を指定して将来的な警告(FutureWarning)を抑制
     kmeans = KMeans(n_clusters=k, random_state=0, n_init='auto').fit(data)
     return tuple(map(int, kmeans.cluster_centers_[0]))
@@ -21,6 +23,7 @@ def get_dominant_color(region, k=1):
 # 色の組み合わせを判定する関数 (変更なし)
 # ========================
 def color_combination_level_improved(color1_bgr, color2_bgr):
+    """2色の組み合わせの相性を判定する"""
     def bgr_to_hsv(bgr):
         hsv = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)
         return hsv[0][0]
@@ -38,6 +41,7 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
     s_avg = (s1 + s2) / 2
     v_avg = (v1 + v2) / 2
 
+    # 判定ロジック
     if h_diff < 20 and s_avg > 120 and v_avg > 180:
         return "❗️ 奇抜で浮く可能性（鮮やかなワントーン）"
     if s_avg < 25:
@@ -74,6 +78,7 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
 # アドバイスを返す関数 (変更なし)
 # ========================
 def get_advice(judgment):
+    """判定結果に応じたアドバイスを返す"""
     if "奇抜" in judgment:
         return "💡 アドバイス: 派手な印象を和らげたい場合は、どちらかを中間色や低彩度に変えてみましょう。"
     return "👍 特に問題のない組み合わせです。自信を持ってコーディネートを楽しみましょう！"
@@ -82,14 +87,14 @@ def get_advice(judgment):
 # 季節のカラーパレット (HSV形式)
 # ========================
 season_palettes = {
-    "春": [(30, 80, 220), (150, 50, 230), (20, 70, 210), (95, 60, 240)], # Coral, Light Green, Peach, Sky Blue
-    "夏": [(100, 30, 220), (110, 50, 200), (155, 40, 230), (0, 0, 250)], # Lavender, Mint, Rose, Off-white
-    "秋": [(15, 180, 150), (25, 170, 130), (10, 100, 80), (40, 120, 100)], # Terracotta, Mustard, Olive, Brown
-    "冬": [(120, 180, 80), (0, 0, 20), (140, 150, 60), (0, 100, 200)], # Royal Blue, Black, Burgundy, Pure White
+    "春": [(30, 80, 220), (150, 50, 230), (20, 70, 210), (95, 60, 240)],
+    "夏": [(100, 30, 220), (110, 50, 200), (155, 40, 230), (0, 0, 250)],
+    "秋": [(15, 180, 150), (25, 170, 130), (10, 100, 80), (40, 120, 100)],
+    "冬": [(120, 180, 80), (0, 0, 20), (140, 150, 60), (0, 100, 200)],
 }
 
 # ========================
-# 【改善】代替カラーを提案する関数
+# 【改良】代替カラーを提案する関数
 # ========================
 def generate_alternative_colors(fixed_color_bgr, season, is_top):
     """
@@ -100,10 +105,12 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
     :return: (提案色BGR, 判定結果) のタプルのリスト
     """
     suggestions = []
-    
-    # 探索する色の候補を生成
     candidate_hsvs = []
+
+    # ===== 変更点①: 提案に含める判定結果を場合分け =====
+    # 「選択なし」の場合は、より無難な提案に絞る
     if season == "選択なし":
+        allowed_keywords = ["無難", "控えめ"]
         # 総当たりで相性の良い色を探索
         h, s, v = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
         for delta_h in [-90, -45, -20, 20, 45, 90]:
@@ -114,6 +121,8 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
                     nv = np.clip(int(v) + delta_v, 30, 255)
                     candidate_hsvs.append((nh, ns, nv))
     else:
+        # 季節選択時は「許容範囲」も提案に含める
+        allowed_keywords = ["無難", "控えめ", "許容範囲"]
         # 季節パレットから候補を生成
         for base_hsv in season_palettes[season]:
             for delta_v in [-40, 0, 40]:
@@ -130,7 +139,8 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         
         judgment = color_combination_level_improved(top_color, bottom_color)
 
-        if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
+        # ===== 変更点②: 上で定義したキーワードでフィルタリング =====
+        if any(word in judgment for word in allowed_keywords):
             suggestions.append((new_bgr_tuple, judgment))
 
     # 重複を除き、最大5件を返す
@@ -159,10 +169,12 @@ if uploaded_file:
             lm = result.pose_landmarks.landmark
             def to_pixel(p): return int(p.x * w), int(p.y * h)
 
+            # ランドマークの取得
             sL, sR = to_pixel(lm[mp_pose.PoseLandmark.LEFT_SHOULDER]), to_pixel(lm[mp_pose.PoseLandmark.RIGHT_SHOULDER])
             hL, hR = to_pixel(lm[mp_pose.PoseLandmark.LEFT_HIP]), to_pixel(lm[mp_pose.PoseLandmark.RIGHT_HIP])
             kL, kR = to_pixel(lm[mp_pose.PoseLandmark.LEFT_KNEE]), to_pixel(lm[mp_pose.PoseLandmark.RIGHT_KNEE])
 
+            # 服の領域を定義
             x1, y1 = min(sL[0], sR[0]), min(sL[1], sR[1])
             x2, y2 = max(hL[0], hR[0]), max(hL[1], hR[1])
             y3 = max(kL[1], kR[1])
