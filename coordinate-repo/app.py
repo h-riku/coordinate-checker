@@ -98,17 +98,31 @@ season_palettes = {
 # ========================
 def generate_alternative_colors(fixed_color_bgr, season, is_top):
     """
-    固定色と季節に基づき、相性の良い代替色を生成する
+    固定色と季節に基づき、相性の良い代替色を生成する。
+    提案が見つからないことを防ぐため、必ずニュートラルカラーを候補に含める。
     :param fixed_color_bgr: 基準となる色 (BGR)
     :param season: "春", "夏", "秋", "冬" または "選択なし"
     :param is_top: Trueならトップス、Falseならボトムスの色を提案
     :return: (提案色BGR, 判定結果) のタプルのリスト
     """
     suggestions = []
-    candidate_hsvs = []
+    
+    # ===== 変更点①: 鉄板のニュートラルカラーを常に候補へ追加 =====
+    # これにより「提案が見つからない」事態を防ぐ
+    neutral_colors_bgr = [
+        (245, 245, 245),  # オフホワイト
+        (128, 128, 128),  # ミドルグレー
+        (50, 50, 50)       # チャコールグレー
+    ]
+    # BGRからHSVに変換して候補リストの初期値とする
+    candidate_hsvs = [
+        tuple(cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)[0][0]) 
+        for bgr in neutral_colors_bgr
+    ]
 
-    # ===== 変更点①: 提案に含める判定結果を場合分け =====
-    # 「選択なし」の場合は、より無難な提案に絞る
+    # ===== 従来の色生成ロジックはそのまま活用 =====
+    
+    # 提案に含める判定結果を場合分け
     if season == "選択なし":
         allowed_keywords = ["無難", "控えめ"]
         # 総当たりで相性の良い色を探索
@@ -139,14 +153,14 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         
         judgment = color_combination_level_improved(top_color, bottom_color)
 
-        # ===== 変更点②: 上で定義したキーワードでフィルタリング =====
+        # 定義したキーワードでフィルタリング
         if any(word in judgment for word in allowed_keywords):
             suggestions.append((new_bgr_tuple, judgment))
 
     # 重複を除き、最大5件を返す
+    # list({s[0]: s for s in suggestions}.values()) で色による重複を削除
     unique_suggestions = list({s[0]: s for s in suggestions}.values())
     return unique_suggestions[:5]
-
 # ========================
 # Streamlit アプリ本体
 # ========================
