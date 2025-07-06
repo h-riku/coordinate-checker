@@ -130,7 +130,7 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         
         judgment = color_combination_level_improved(top_color, bottom_color)
 
-        if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
+        if any(word in judgment for word in ["無難", "控えめ"]):
             suggestions.append((new_bgr_tuple, judgment))
 
     # 重複を除き、最大5件を返す
