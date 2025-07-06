@@ -5,6 +5,9 @@ import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
 
+# ========================
+# 代表色取得
+# ========================
 def get_dominant_color(region, k=1):
     data = region.reshape((-1, 3))
     data = data[np.any(data != [255, 255, 255], axis=1)]
@@ -13,6 +16,9 @@ def get_dominant_color(region, k=1):
     kmeans = KMeans(n_clusters=k, random_state=0).fit(data)
     return tuple(map(int, kmeans.cluster_centers_[0]))
 
+# ========================
+# 色組み合わせ判定
+# ========================
 def color_combination_level_improved(color1_bgr, color2_bgr):
     def bgr_to_hsv(bgr):
         hsv = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)
@@ -63,16 +69,17 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
             return "❗️ 奇抜で浮く可能性 (補色系・高彩度)"
     return "❗️ 奇抜で浮く可能性"
 
+# ========================
+# アドバイス
+# ========================
 def get_advice(judgment):
     if "奇抜" in judgment:
-        return (
-            "💡 アドバイス: 色がかなり目立つので、落ち着いた色味のアクセサリーや小物を合わせるとバランスが取れます。\n"
-            "または、どちらか一方の色を抑えめの中間色にすると良いでしょう。"
-        )
-    else:
-        return "👍 特に問題のない組み合わせです。自信を持って出かけましょう！"
+        return "💡 アドバイス: 派手な印象を和らげたい場合は、どちらかを中間色や低彩度に変えてみましょう。"
+    return "👍 特に問題のない組み合わせです。"
 
-
+# ========================
+# 季節パレット
+# ========================
 season_palettes = {
     "春": [(30, 80, 220), (150, 50, 230), (20, 70, 210)],
     "夏": [(90, 150, 200), (110, 120, 240), (0, 0, 255)],
@@ -80,12 +87,15 @@ season_palettes = {
     "冬": [(120, 200, 80), (0, 0, 50), (140, 190, 60)],
 }
 
+# ========================
+# 代替色生成
+# ========================
 def generate_alternative_colors(fixed_color_bgr, season=None, change_target="top"):
     fixed_hsv = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
-
     suggestions = []
 
-    if season is None:  # 季節なしは幅広い色変化で生成
+    if season is None:
+        h, s, v = int(fixed_hsv[0]), int(fixed_hsv[1]), int(fixed_hsv[2])
         for delta_h in [-60, -30, -15, 15, 30, 60, 90, 120]:
             for delta_s in [-60, -30, 0, 30]:
                 for delta_v in [-60, -30, 0, 30]:
@@ -106,7 +116,6 @@ def generate_alternative_colors(fixed_color_bgr, season=None, change_target="top
                         suggestions.append((new_bgr_tuple, judgment))
         return suggestions[:5]
 
-    # 季節指定ありの場合（従来の季節パレットに寄せる方式）
     palette_hsv = [np.uint8([[[h, s, v]]]) for (h, s, v) in season_palettes[season]]
     palette_bgr = [cv2.cvtColor(c, cv2.COLOR_HSV2BGR)[0][0] for c in palette_hsv]
 
@@ -128,15 +137,15 @@ def generate_alternative_colors(fixed_color_bgr, season=None, change_target="top
 
             if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
                 suggestions.append((new_bgr_tuple, judgment))
-
     return suggestions[:3]
 
-# Streamlit UI
+# ========================
+# Streamlit アプリ
+# ========================
 st.set_page_config(page_title="コーディネートはこーでねーと", layout="centered")
 st.title("👕👖 コーディネートはこーでねーと")
 
 season = st.selectbox("季節を選んでください", ["選択なし", "春", "夏", "秋", "冬"])
-
 uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
 
 if uploaded_file:
@@ -176,16 +185,15 @@ if uploaded_file:
             advice = get_advice(judgment)
 
             st.image(image, caption="アップロード画像", use_column_width=True)
-            st.markdown(f"<div style='background-color:rgb{top_rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000; margin-right:5px;'></div> **トップスの代表色**: {top_color}", unsafe_allow_html=True)
-            st.markdown(f"<div style='background-color:rgb{bottom_rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000; margin-right:5px;'></div> **ボトムスの代表色**: {bottom_color}", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:rgb{top_rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000;'></div> **トップスの代表色**: {top_color}", unsafe_allow_html=True)
+            st.markdown(f"<div style='background-color:rgb{bottom_rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000;'></div> **ボトムスの代表色**: {bottom_color}", unsafe_allow_html=True)
 
             st.markdown(f"### 🎨 判定結果:\n{judgment}")
             st.markdown(f"### 💬 アドバイス:\n{advice}")
 
-            st.markdown("### 🧩 代替コーディネート提案")
-
-            # 季節選択が「選択なし」の場合は None を渡す
+            # 季節パラメータ処理
             season_arg = None if season == "選択なし" else season
+            st.markdown("### 🧩 代替コーディネート提案")
 
             top_suggestions = generate_alternative_colors(bottom_color, season_arg, change_target="top")
             bottom_suggestions = generate_alternative_colors(top_color, season_arg, change_target="bottom")
@@ -194,18 +202,14 @@ if uploaded_file:
                 st.markdown("#### 👕 トップスを変えるなら？")
                 for color, judgment in top_suggestions:
                     rgb = (color[2], color[1], color[0])
-                    st.markdown(
-                        f"<div style='background-color:rgb{rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000; margin-right:5px;'></div> 提案色: {color} - {judgment}",
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f"<div style='background-color:rgb{rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000;'></div> 提案色: {color} - {judgment}", unsafe_allow_html=True)
 
             if bottom_suggestions:
                 st.markdown("#### 👖 ボトムスを変えるなら？")
                 for color, judgment in bottom_suggestions:
                     rgb = (color[2], color[1], color[0])
-                    st.markdown(
-                        f"<div style='background-color:rgb{rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000; margin-right:5px;'></div> 提案色: {color} - {judgment}",
-                        unsafe_allow_html=True,
-                    )
+                    st.markdown(f"<div style='background-color:rgb{rgb}; width:20px; height:20px; display:inline-block; border:1px solid #000;'></div> 提案色: {color} - {judgment}", unsafe_allow_html=True)
+
         else:
             st.error("⚠️ 人物が検出できませんでした。画像を確認してください。")
+
