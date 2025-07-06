@@ -88,20 +88,24 @@ def generate_alternative_colors(fixed_color_bgr, season=None, change_target="top
     if season is None:  # 季節なしは幅広い色変化で生成
         h, s, v = int(fixed_hsv[0]), int(fixed_hsv[1]), int(fixed_hsv[2])
         for delta_h in range(-90, 91, 30):
-            for delta_s in [-60, -30, 0, 30]:
-                for delta_v in [-60, -30, 0, 30]:
-                    nh = (h + delta_h) % 180
-                    ns = np.clip(s + delta_s, 30, 255)
-                    nv = np.clip(v + delta_v, 30, 255)
-                    new_hsv = np.uint8([[[nh, ns, nv]]])
-                    new_bgr = cv2.cvtColor(new_hsv, cv2.COLOR_HSV2BGR)[0][0]
-                    new_bgr_tuple = tuple(int(x) for x in new_bgr)
-                    if change_target == "top":
-                        judgment = color_combination_level_improved(new_bgr_tuple, fixed_color_bgr)
-                    else:
-                        judgment = color_combination_level_improved(fixed_color_bgr, new_bgr_tuple)
-                    if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
-                        suggestions.append((new_bgr_tuple, judgment))
+            for delta_h in [-60, -30, -15, 15, 30, 60, 90, 120]:
+        for delta_s in [-60, -30, 0, 30]:
+            for delta_v in [-60, -30, 0, 30]:
+                nh = (h + delta_h) % 180
+                ns = np.clip(s + delta_s, 30, 255)
+                nv = np.clip(v + delta_v, 30, 255)
+
+                new_hsv = np.uint8([[[nh, ns, nv]]])
+                new_bgr = cv2.cvtColor(new_hsv, cv2.COLOR_HSV2BGR)[0][0]
+                new_bgr_tuple = tuple(int(x) for x in new_bgr)
+
+                if change_target == "top":
+                    judgment = color_combination_level_improved(new_bgr_tuple, fixed_color_bgr)
+                else:
+                    judgment = color_combination_level_improved(fixed_color_bgr, new_bgr_tuple)
+
+                if any(word in judgment for word in ["無難", "控えめ", "許容範囲"]):
+                    suggestions.append((new_bgr_tuple, judgment))
         return suggestions[:5]
 
     # 季節指定ありの場合（従来の季節パレットに寄せる方式）
