@@ -83,26 +83,33 @@ def get_advice(judgment):
         return "👍 特に問題のない組み合わせです。自信を持って出かけましょう！"
 
 # ========================
-# 代替コーディネート提案関数
+# 動的に代替色を提案する関数
 # ========================
-def suggest_alternative_colors(fixed_color_bgr, change_target="top"):
+def generate_alternative_colors(fixed_color_bgr, change_target="top"):
+    fixed_hsv = cv2.cvtColor(np.uint8([[fixed_color_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
+    h, s, v = int(fixed_hsv[0]), int(fixed_hsv[1]), int(fixed_hsv[2])
+
+    variations = [
+        ((h + 15) % 180, s, v),
+        ((h - 15) % 180, s, v),
+        ((h + 90) % 180, max(50, s - 50), max(50, v - 50)),
+        ((h + 30) % 180, s, min(255, v + 30)),
+        ((h + 60) % 180, min(255, s + 30), v),
+    ]
+
     suggestions = []
+    for nh, ns, nv in variations:
+        hsv = np.uint8([[[nh, ns, nv]]])
+        bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)[0][0]
+        bgr_tuple = tuple(int(x) for x in bgr)
 
-    # よく使われる色（BGR）
-    common_colors = {
-        "無難": [(200, 200, 200), (100, 100, 100), (50, 50, 50)],
-        "差し色": [(0, 128, 255), (0, 255, 128), (255, 128, 0)],
-        "落ち着き": [(150, 120, 100), (100, 150, 120), (120, 100, 150)],
-    }
+        if change_target == "top":
+            judgment = color_combination_level_improved(bgr_tuple, fixed_color_bgr)
+        else:
+            judgment = color_combination_level_improved(fixed_color_bgr, bgr_tuple)
 
-    for category, colors in common_colors.items():
-        for color in colors:
-            if change_target == "top":
-                judgment = color_combination_level_improved(color, fixed_color_bgr)
-            else:
-                judgment = color_combination_level_improved(fixed_color_bgr, color)
-            if "無難" in judgment or "控えめ" in judgment:
-                suggestions.append((category, color, judgment))
+        if "無難" in judgment or "控えめ" in judgment:
+            suggestions.append((bgr_tuple, judgment))
 
     return suggestions[:2]
 
@@ -145,7 +152,6 @@ if uploaded_file:
             top_color = get_dominant_color(top_region)
             bottom_color = get_dominant_color(bottom_region)
 
-            # BGR → RGB
             top_rgb = (top_color[2], top_color[1], top_color[0])
             bottom_rgb = (bottom_color[2], bottom_color[1], bottom_color[0])
 
@@ -170,26 +176,26 @@ if uploaded_file:
             # ======= 代替コーディネート提案 =======
             st.markdown("### 🧩 代替コーディネートの提案")
 
-            top_suggestions = suggest_alternative_colors(bottom_color, change_target="top")
-            bottom_suggestions = suggest_alternative_colors(top_color, change_target="bottom")
+            top_suggestions = generate_alternative_colors(bottom_color, change_target="top")
+            bottom_suggestions = generate_alternative_colors(top_color, change_target="bottom")
 
             if top_suggestions:
                 st.markdown("#### 👕 トップスを変えるなら？")
-                for category, color, judgment in top_suggestions:
+                for color, judgment in top_suggestions:
                     rgb = (color[2], color[1], color[0])
                     st.markdown(
                         f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb{rgb}; border:1px solid #000; margin-right:8px;'></div>"
-                        f"**提案色 ({category})** - {judgment}",
+                        f"**提案色** - {judgment}",
                         unsafe_allow_html=True,
                     )
 
             if bottom_suggestions:
                 st.markdown("#### 👖 ボトムスを変えるなら？")
-                for category, color, judgment in bottom_suggestions:
+                for color, judgment in bottom_suggestions:
                     rgb = (color[2], color[1], color[0])
                     st.markdown(
                         f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb{rgb}; border:1px solid #000; margin-right:8px;'></div>"
-                        f"**提案色 ({category})** - {judgment}",
+                        f"**提案色** - {judgment}",
                         unsafe_allow_html=True,
                     )
         else:
