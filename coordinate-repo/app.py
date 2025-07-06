@@ -116,7 +116,7 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
     
     # 提案に含める判定結果を場合分け
     if season == "選択なし":
-        allowed_keywords = ["無難", "控えめ", "許容範囲"]
+        allowed_keywords = ["無難", "控えめ"]
         
         # 1. 固定色に近い色を探索
         for delta_h in [-120, -90, -60, -30, 0, 30, 60, 90, 120]:
