@@ -205,7 +205,7 @@ def create_color_chip_html(bgr_color, size=30):
 # Streamlit アプリ本体
 # ========================
 st.set_page_config(page_title="コーディネートはこーでねーと", layout="centered")
-st.title("コーディネートはこーでねーと")
+st.title("🎨コーディネートはこーでねーと")
 
 season = st.selectbox("季節を選んでください (提案される色が変わります)", ["選択なし", "春", "夏", "秋", "冬"])
 uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
@@ -290,7 +290,7 @@ if uploaded_file:
 
                 # 差し色提案
                 with st.expander("💡 別のコーディネート提案を見る"):
-                    st.markdown("<h4 style='color:#0078D7; margin-bottom:12px;'>🎨 小物やアクセサリーに差し色を加えるなら？</h4>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='color:#0078D7; margin-bottom:12px;'>👜 小物やアクセサリーに差し色を加えるなら？</h4>", unsafe_allow_html=True)
                     accent_colors = suggest_accent_color(top_color, bottom_color)
                     cols = st.columns(len(accent_colors))
                     for i, ac_color in enumerate(accent_colors):
