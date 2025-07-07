@@ -268,15 +268,7 @@ if uploaded_file:
                 # スコア＆判定カード風ボックス
                 score = calculate_detailed_score(top_color, bottom_color)
                 judgment = color_combination_level_improved(top_color, bottom_color)
-                def get_score_color(score):
-                    if score >= 85:
-                        return "#32CD32"  # LimeGreen
-                    elif score >= 70:
-                        return "#FFA500"  # Orange
-                    else:
-                        return "#FF4500"  # OrangeRed
-
-                score_color = get_score_color(score)
+                
                 st.markdown(f"""
                 <div style='
                     background-color:#f5faff; 
