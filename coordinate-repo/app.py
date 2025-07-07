@@ -272,20 +272,21 @@ if uploaded_file:
                 st.markdown(f"""
                 <div style='
                     background-color:#f5faff; 
-                    padding:20px; 
-                    border-radius:20px; 
-                    box-shadow: 0 8px 20px rgba(30,144,255,0.2);
-                    max-width:400px;
-                    margin-bottom:30px;
+                    padding:30px; 
+                    border-radius:25px; 
+                    box-shadow: 0 10px 25px rgba(30,144,255,0.2);
+                    max-width:500px;
+                    margin-bottom:40px;
                     font-family:"Helvetica Neue", Arial, sans-serif;
                 '>
-                    <h2 style='color:#1E90FF; margin-bottom:5px; font-weight: normal;'>コーデスコア: <span style='font-size:48px; color:#FF4500; font-weight:bold;'>{score} 点</span></h2>
-                    <p style='font-weight:bold; font-size:20px; margin:8px 0; color:#333;'>判定: {judgment}</p>
-                    <p style='font-style:italic; color:#555; margin-top:10px;'>{get_advice(judgment)}</p>
+                    <h2 style='color:#1E90FF; margin-bottom:10px; font-weight: bold; font-size:26px;'>コーデスコア: <span style='font-size:50px; color:#FF4500; font-weight:bold;'>{score} 点</span></h2> 
+                    <p style='font-weight:bold; font-size:22px; margin:12px 0; color:#333;'>判定: {judgment}</p>
+                    <p style='font-style:italic; color:#555; font-size:18px; margin-top:14px;'>{get_advice(judgment)}</p>
                 </div>
                 """, unsafe_allow_html=True)
 
                 st.markdown("---")
+
 
                 # 差し色提案
                 with st.expander("💡 別のコーディネート提案を見る"):
