@@ -279,7 +279,7 @@ if uploaded_file:
                     margin-bottom:30px;
                     font-family:"Helvetica Neue", Arial, sans-serif;
                 '>
-                    <h2 style='color:#1E90FF; margin-bottom:5px;'>コーデスコア: <span style='font-size:28px;'>{score} 点</span></h2>
+                    <h2 style='color:#1E90FF; margin-bottom:5px; font-weight: normal;'>コーデスコア: <span style='font-size:48px; color:#FF4500; font-weight:bold;'>{score} 点</span></h2>
                     <p style='font-weight:bold; font-size:20px; margin:8px 0; color:#333;'>判定: {judgment}</p>
                     <p style='font-style:italic; color:#555; margin-top:10px;'>{get_advice(judgment)}</p>
                 </div>
