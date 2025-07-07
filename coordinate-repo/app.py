@@ -202,18 +202,6 @@ def create_color_chip_html(bgr_color, size=30):
     """
 
 # ========================
-# スコアに応じた色変化（視覚効果）
-# ========================
-def get_score_color(score):
-    if score >= 85:
-        return "#32CD32"  # LimeGreen
-    elif score >= 70:
-        return "#FFA500"  # Orange
-    else:
-        return "#FF4500"  # OrangeRed
-
-score_color = get_score_color(score)
-# ========================
 # Streamlit アプリ本体
 # ========================
 st.set_page_config(page_title="コーディネートはこーでねーと", layout="centered")
@@ -280,7 +268,15 @@ if uploaded_file:
                 # スコア＆判定カード風ボックス
                 score = calculate_detailed_score(top_color, bottom_color)
                 judgment = color_combination_level_improved(top_color, bottom_color)
+                def get_score_color(score):
+                    if score >= 85:
+                        return "#32CD32"  # LimeGreen
+                    elif score >= 70:
+                        return "#FFA500"  # Orange
+                    else:
+                        return "#FF4500"  # OrangeRed
 
+                score_color = get_score_color(score)
                 st.markdown(f"""
                 <div style='
                     background-color:#f5faff; 
@@ -291,7 +287,7 @@ if uploaded_file:
                     margin-bottom:40px;
                     font-family:"Helvetica Neue", Arial, sans-serif;
                 '>
-                    <h2 style='color:#1E90FF; margin-bottom:10px; font-weight: bold; font-size:26px;'>コーデスコア: <p style='font-size:50px; color:{score_color}; font-weight:bold;'>{score} 点</p></h2> 
+                    <h2 style='color:#1E90FF; margin-bottom:10px; font-weight: bold; font-size:26px;'>コーデスコア: <span style='font-size:50px; color:#FF4500; font-weight:bold;'>{score} 点</span></h2> 
                     <p style='font-weight:bold; font-size:22px; margin:12px 0; color:#333;'>判定: {judgment}</p>
                     <p style='font-style:italic; color:#555; font-size:18px; margin-top:14px;'>{get_advice(judgment)}</p>
                 </div>
