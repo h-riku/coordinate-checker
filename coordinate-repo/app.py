@@ -205,7 +205,7 @@ def create_color_chip_html(bgr_color, size=30):
 # Streamlit アプリ本体
 # ========================
 st.set_page_config(page_title="コーディネートはこーでねーと", layout="centered")
-st.title("👕👖 コーディネートはこーでねーと")
+st.title("👕👖コーディネートはこーでねーと")
 
 season = st.selectbox("季節を選んでください (提案される色が変わります)", ["選択なし", "春", "夏", "秋", "冬"])
 uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
@@ -299,7 +299,7 @@ if uploaded_file:
                             st.markdown(f"<small style='color:#555;'>差し色案 {i+1}</small>", unsafe_allow_html=True)
 
                     # 代替カラー提案（トップス・ボトムス）
-                    st.markdown("<br>")
+                    
                     st.markdown("<h4 style='color:#0078D7; margin-top:25px; margin-bottom:12px;'>👕 トップスの色を変えたい場合の提案</h4>", unsafe_allow_html=True)
                     alt_tops = generate_alternative_colors(bottom_color, season, is_top=True)
                     cols = st.columns(len(alt_tops))
@@ -308,7 +308,7 @@ if uploaded_file:
                             st.markdown(create_color_chip_html(color, 40), unsafe_allow_html=True)
                             st.markdown(f"<small style='color:#555;'>{judgment_alt}</small>", unsafe_allow_html=True)
 
-                    st.markdown("<br>")
+                    
                     st.markdown("<h4 style='color:#0078D7; margin-top:25px; margin-bottom:12px;'>👖 ボトムスの色を変えたい場合の提案</h4>", unsafe_allow_html=True)
                     alt_bottoms = generate_alternative_colors(top_color, season, is_top=False)
                     cols = st.columns(len(alt_bottoms))
