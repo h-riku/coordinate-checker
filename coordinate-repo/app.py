@@ -208,7 +208,7 @@ st.set_page_config(page_title="コーディネートはこーでねーと", layo
 st.title("🎨コーディネートはこーでねーと")
 
 season = st.selectbox("季節を選んでください (提案される色が変わります)", ["選択なし", "春", "夏", "秋", "冬"])
-uploaded_file = st.file_uploader("服装画像をアップロードしてください", type=["jpg", "png"])
+uploaded_file = st.file_uploader("服装画像をアップロードしてください(全身が写っている画像を推奨します)", type=["jpg", "png"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
