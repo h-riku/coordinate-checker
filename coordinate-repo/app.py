@@ -290,7 +290,7 @@ if uploaded_file:
 
                 # 差し色提案
                 with st.expander("💡 別のコーディネート提案を見る"):
-                    st.markdown("<h4 style='color:#0078D7; margin-bottom:12px;'>👜 小物やアクセサリーに差し色を加えるなら？</h4>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='color:#0078D7; margin-bottom:12px;'>👜 小物やアクセサリーで差し色を加えるなら？</h4>", unsafe_allow_html=True)
                     accent_colors = suggest_accent_color(top_color, bottom_color)
                     cols = st.columns(len(accent_colors))
                     for i, ac_color in enumerate(accent_colors):
