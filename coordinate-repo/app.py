@@ -18,11 +18,10 @@ def get_dominant_color(region, k=1):
     return tuple(map(int, kmeans.cluster_centers_[0]))
 
 # ========================
-# キャッシュ対応: 色の組み合わせを判定する関数
+# 色の組み合わせ判定関数
 # ========================
 @st.cache_data
 def color_combination_level_improved(color1_bgr, color2_bgr):
-    # ... (内容は変更なし) ...
     def bgr_to_hsv(bgr):
         hsv = cv2.cvtColor(np.uint8([[bgr]]), cv2.COLOR_BGR2HSV)
         return hsv[0][0]
@@ -57,10 +56,6 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
 # ========================
 @st.cache_data
 def calculate_detailed_score(color1_bgr, color2_bgr):
-    """
-    judgment（無難/控えめ/許容範囲/奇抜）に応じたスコア帯をベースに、
-    HSV差異によるスコア補正を加えてスコアを算出（0〜100点）。
-    """
     hsv1 = cv2.cvtColor(np.uint8([[color1_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
     hsv2 = cv2.cvtColor(np.uint8([[color2_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
     h1, s1, v1 = int(hsv1[0]), int(hsv1[1]), int(hsv1[2])
@@ -75,7 +70,6 @@ def calculate_detailed_score(color1_bgr, color2_bgr):
 
     judgment = color_combination_level_improved(color1_bgr, color2_bgr)
 
-    # --- 基本スコア帯の設定 ---
     if "無難" in judgment:
         base_min, base_max = 85, 100
     elif "控えめ" in judgment:
@@ -85,40 +79,36 @@ def calculate_detailed_score(color1_bgr, color2_bgr):
     elif "奇抜" in judgment:
         base_min, base_max = 0, 49
     else:
-        base_min, base_max = 50, 69  # 判定できない場合は中間帯に分類
+        base_min, base_max = 50, 69
 
-    # --- スコア補正（ベースの中央値から増減） ---
     base_score = (base_min + base_max) / 2
     offset = 0
 
-    # 明度差でメリハリ評価
     if v_diff > 80 and s_diff < 80:
-        offset += 5  # トーン差が効いてる
+        offset += 5
     elif v_diff < 20 and 40 < s_avg < 160:
-        offset -= 5  # 地味に見える可能性
+        offset -= 5
 
-    # ネオンカラーを控えめに評価
     if s_avg > 200 and v_avg > 220:
         offset -= 5
 
-    # 類似色でのトーン構成
     if h_diff < 30 and v_diff > 50 and s_diff > 50:
         offset += 5
 
     final_score = base_score + offset
 
     return int(np.clip(final_score, base_min, base_max))
+
 # ========================
-# アドバイスを返す関数 (変更なし)
+# アドバイスを返す関数
 # ========================
 def get_advice(judgment):
-    if "奇抜" in judgment: return "💡 アドバイス: 派手な印象を和らげたい場合は、どちらかを中間色や低彩度に変えてみましょう。"
+    if "奇抜" in judgment:
+        return "💡 アドバイス: 派手な印象を和らげたい場合は、どちらかを中間色や低彩度に変えてみましょう。"
     return "👍 特に問題のない組み合わせです。自信を持ってコーディネートを楽しみましょう！"
 
-# (他の関数は変更なし)
-# ... season_palettes, suggest_accent_color, generate_alternative_colors, get_dynamic_base_colors ...
 # ========================
-# 季節のカラーパレット (変更なし)
+# 季節のカラーパレット
 # ========================
 season_palettes = {
     "春": [(25, 60, 240), (35, 90, 230), (90, 40, 220), (160, 70, 240), (20, 40, 210), (0, 0, 250), (120, 30, 200)],
@@ -128,7 +118,7 @@ season_palettes = {
 }
 
 # ========================
-# 差し色を提案する関数 (変更なし)
+# 差し色を提案する関数
 # ========================
 @st.cache_data
 def suggest_accent_color(color1_bgr, color2_bgr):
@@ -144,7 +134,7 @@ def suggest_accent_color(color1_bgr, color2_bgr):
     return [accent_bgr1, accent_bgr2]
 
 # ========================
-# 代替カラーを提案する関数 (変更なし)
+# 代替カラーを提案する関数
 # ========================
 @st.cache_data
 def generate_alternative_colors(fixed_color_bgr, season, is_top):
@@ -176,10 +166,11 @@ def generate_alternative_colors(fixed_color_bgr, season, is_top):
         if any(word in judgment for word in allowed_keywords):
             suggestions.append((new_bgr_tuple, judgment))
             
+    # 色が重複するものを排除し5件まで
     return list({s[0]: s for s in suggestions}.values())[:5]
 
 # ========================
-# 動的にベースカラーを生成する関数 (変更なし)
+# 動的にベースカラーを生成する関数
 # ========================
 def get_dynamic_base_colors(v_value):
     staple_colors = [(205, 220, 235), (130, 70, 20)]
@@ -191,6 +182,24 @@ def get_dynamic_base_colors(v_value):
         dynamic_neutrals = [(245, 245, 245), (128, 128, 128), (50, 50, 50)]
     return staple_colors + dynamic_neutrals
 
+
+# ========================
+# カラー表示用の丸い色チップHTML
+# ========================
+def create_color_chip_html(bgr_color, size=30):
+    rgb_color = (bgr_color[2], bgr_color[1], bgr_color[0])
+    return f"""
+    <div style='
+        display:inline-block; 
+        width:{size}px; height:{size}px; 
+        background-color: rgb{rgb_color};
+        border-radius: 50%;
+        box-shadow: 0 0 8px rgba(0,0,0,0.25);
+        margin-right:12px;
+        vertical-align:middle;
+        border: 2px solid #eee;
+    '></div>
+    """
 
 # ========================
 # Streamlit アプリ本体
@@ -210,7 +219,6 @@ if uploaded_file:
         result = pose.process(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
 
         if result.pose_landmarks:
-            # (ランドマーク検出部分は変更なし)
             lm = result.pose_landmarks.landmark
             def to_pixel(p): return int(p.x * w), int(p.y * h)
             sL, sR = to_pixel(lm[mp.solutions.pose.PoseLandmark.LEFT_SHOULDER]), to_pixel(lm[mp.solutions.pose.PoseLandmark.RIGHT_SHOULDER])
@@ -229,47 +237,88 @@ if uploaded_file:
                 top_color, bottom_color = get_dominant_color(top_region), get_dominant_color(bottom_region)
                 
                 st.image(image, caption="アップロード画像", use_column_width=True)
-                def create_color_chip_html(bgr_color):
-                    rgb_color = (bgr_color[2], bgr_color[1], bgr_color[0])
-                    return f"<div style='display:inline-block; width:20px; height:20px; background-color:rgb{rgb_color}; border:1px solid #ccc; margin-right:8px; vertical-align:middle;'></div>"
 
-                st.markdown(f"{create_color_chip_html(top_color)} **トップスの代表色**", unsafe_allow_html=True)
-                st.markdown(f"{create_color_chip_html(bottom_color)} **ボトムスの代表色**", unsafe_allow_html=True)
-                
-                # --- 【UI変更】新しいスコア算出関数を呼び出し ---
+                st.markdown(f"""
+                <div style='
+                    display:flex; 
+                    align-items:center; 
+                    font-size:18px; 
+                    margin-top:20px; 
+                    margin-bottom:15px;
+                    font-weight:bold;
+                    color:#333;
+                '>
+                    {create_color_chip_html(top_color, 40)} トップスの代表色
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.markdown(f"""
+                <div style='
+                    display:flex; 
+                    align-items:center; 
+                    font-size:18px; 
+                    margin-bottom:25px;
+                    font-weight:bold;
+                    color:#333;
+                '>
+                    {create_color_chip_html(bottom_color, 40)} ボトムスの代表色
+                </div>
+                """, unsafe_allow_html=True)
+
+                # スコア＆判定カード風ボックス
                 score = calculate_detailed_score(top_color, bottom_color)
-                st.metric("コーデスコア", f"{score} 点")
-
-                # --- 判定とアドバイス表示 ---
                 judgment = color_combination_level_improved(top_color, bottom_color)
-                st.markdown(f"**判定**: {judgment}")
-                st.markdown(f"**アドバイス**: {get_advice(judgment)}")
-                
+
+                st.markdown(f"""
+                <div style='
+                    background-color:#f5faff; 
+                    padding:20px; 
+                    border-radius:20px; 
+                    box-shadow: 0 8px 20px rgba(30,144,255,0.2);
+                    max-width:400px;
+                    margin-bottom:30px;
+                    font-family:"Helvetica Neue", Arial, sans-serif;
+                '>
+                    <h2 style='color:#1E90FF; margin-bottom:5px;'>コーデスコア: <span style='font-size:28px;'>{score} 点</span></h2>
+                    <p style='font-weight:bold; font-size:20px; margin:8px 0; color:#333;'>判定: {judgment}</p>
+                    <p style='font-style:italic; color:#555; margin-top:10px;'>{get_advice(judgment)}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
                 st.markdown("---")
 
-                # --- 提案機能 (変更なし) ---
+                # 差し色提案
                 with st.expander("💡 別のコーディネート提案を見る"):
-                    st.markdown("##### 🎨 小物で差し色を加えるなら？")
+                    st.markdown("<h4 style='color:#0078D7; margin-bottom:12px;'>🎨 小物やアクセサリーに差し色を加えるなら？</h4>", unsafe_allow_html=True)
                     accent_colors = suggest_accent_color(top_color, bottom_color)
                     cols = st.columns(len(accent_colors))
-                    for i, color in enumerate(accent_colors):
+                    for i, ac_color in enumerate(accent_colors):
                         with cols[i]:
-                            st.markdown(create_color_chip_html(color), unsafe_allow_html=True)
-                            st.markdown(f"<small>差し色案{i+1}</small>", unsafe_allow_html=True)
-                    st.markdown("---")
-                    
-                    top_suggestions = generate_alternative_colors(bottom_color, season, is_top=True)
-                    if top_suggestions:
-                        st.markdown("##### 👕 今のボトムスに合わせるなら？")
-                        for color, j in top_suggestions:
-                            st.markdown(f"{create_color_chip_html(bottom_color)} + {create_color_chip_html(color)} &rarr; {j}", unsafe_allow_html=True)
-                    
-                    st.markdown("---")
-                    
-                    bottom_suggestions = generate_alternative_colors(top_color, season, is_top=False)
-                    if bottom_suggestions:
-                        st.markdown("##### 👖 今のトップスに合わせるなら？")
-                        for color, j in bottom_suggestions:
-                            st.markdown(f"{create_color_chip_html(top_color)} + {create_color_chip_html(color)} &rarr; {j}", unsafe_allow_html=True)
+                            st.markdown(create_color_chip_html(ac_color, 40), unsafe_allow_html=True)
+                            st.markdown(f"<small style='color:#555;'>差し色案 {i+1}</small>", unsafe_allow_html=True)
+
+                    # 代替カラー提案（トップス・ボトムス）
+                    st.markdown("<br>")
+                    st.markdown("<h4 style='color:#0078D7; margin-top:25px; margin-bottom:12px;'>👕 トップスの色を変えたい場合の提案</h4>", unsafe_allow_html=True)
+                    alt_tops = generate_alternative_colors(bottom_color, season, is_top=True)
+                    cols = st.columns(len(alt_tops))
+                    for i, (color, judgment_alt) in enumerate(alt_tops):
+                        with cols[i]:
+                            st.markdown(create_color_chip_html(color, 40), unsafe_allow_html=True)
+                            st.markdown(f"<small style='color:#555;'>{judgment_alt}</small>", unsafe_allow_html=True)
+
+                    st.markdown("<br>")
+                    st.markdown("<h4 style='color:#0078D7; margin-top:25px; margin-bottom:12px;'>👖 ボトムスの色を変えたい場合の提案</h4>", unsafe_allow_html=True)
+                    alt_bottoms = generate_alternative_colors(top_color, season, is_top=False)
+                    cols = st.columns(len(alt_bottoms))
+                    for i, (color, judgment_alt) in enumerate(alt_bottoms):
+                        with cols[i]:
+                            st.markdown(create_color_chip_html(color, 40), unsafe_allow_html=True)
+                            st.markdown(f"<small style='color:#555;'>{judgment_alt}</small>", unsafe_allow_html=True)
+
         else:
-            st.error("⚠️ 人物が検出できませんでした。全身が写っている画像をお試しください。")
+            st.error("⚠️ 画像から姿勢ランドマークを検出できませんでした。もっとはっきりした画像をアップロードしてください。")
+
+else:
+    st.info("画像をアップロードすると、トップスとボトムスの代表色を判定してコーディネートを評価します。")
+
