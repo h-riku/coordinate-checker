@@ -255,6 +255,7 @@ if uploaded_file:
                     for i, color in enumerate(accent_colors):
                         with cols[i]:
                             st.markdown(create_color_chip_html(color), unsafe_allow_html=True)
+                            st.markdown(f"<small>差し色案{i+1}</small>", unsafe_allow_html=True)
                     st.markdown("---")
                     
                     top_suggestions = generate_alternative_colors(bottom_color, season, is_top=True)
