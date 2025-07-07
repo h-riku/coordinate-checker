@@ -53,12 +53,13 @@ def color_combination_level_improved(color1_bgr, color2_bgr):
     return "❗️ 奇抜で浮く可能性"
 
 # ========================
-# 【新機能】複雑なロジックで総合スコアを算出する関数
+# 総合スコアを算出する関数
 # ========================
 @st.cache_data
 def calculate_detailed_score(color1_bgr, color2_bgr):
     """
-    色の組み合わせのHSV値を多角的に分析し、スコアを算出する。
+    judgment（無難/控えめ/許容範囲/奇抜）に応じたスコア帯をベースに、
+    HSV差異によるスコア補正を加えてスコアを算出（0〜100点）。
     """
     hsv1 = cv2.cvtColor(np.uint8([[color1_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
     hsv2 = cv2.cvtColor(np.uint8([[color2_bgr]]), cv2.COLOR_BGR2HSV)[0][0]
@@ -72,36 +73,41 @@ def calculate_detailed_score(color1_bgr, color2_bgr):
     s_avg = (s1 + s2) / 2
     v_avg = (v1 + v2) / 2
 
-    score = 70  # ベーススコア
+    judgment = color_combination_level_improved(color1_bgr, color2_bgr)
 
-    # 1. 彩度に基づく評価 (S: Saturation)
-    if s_avg < 25:  # 無彩色コーデは非常に合わせやすい
-        score += 20
-    elif s_avg < 80:  # 低彩度で落ち着いている
-        score += 10
-    if s_avg > 180 and v_avg > 180: # ネオンカラーの組み合わせは難しい
-        score -= 40
+    # --- 基本スコア帯の設定 ---
+    if "無難" in judgment:
+        base_min, base_max = 85, 100
+    elif "控えめ" in judgment:
+        base_min, base_max = 70, 84
+    elif "許容範囲" in judgment:
+        base_min, base_max = 50, 69
+    elif "奇抜" in judgment:
+        base_min, base_max = 0, 49
+    else:
+        base_min, base_max = 50, 69  # 判定できない場合は中間帯に分類
 
-    # 2. 明度差に基づく評価 (V: Value)
-    if v_diff > 70:  # コントラストが明確でおしゃれに見えやすい
-        score += 10
-    elif v_diff < 20 and 40 < s_avg < 150: # 中彩度で明度差が少ないと地味に見えがち
-        score -= 10
+    # --- スコア補正（ベースの中央値から増減） ---
+    base_score = (base_min + base_max) / 2
+    offset = 0
 
-    # 3. 色相差に基づく評価 (H: Hue)
-    if h_diff < 30:  # 類似色・同系色
-        score += 5
-        if v_diff > 80 or s_diff > 80: # さらにトーンオントーンなら高評価
-            score += 10
-    elif h_diff >= 75: # 補色系
-        if s_avg < 100: # 彩度が低ければ、上級者向けのおしゃれな配色
-            score += 15
-        else: # 彩度が高い補色系は非常に奇抜
-            score -= 30
-    
-    # スコアを0-100の範囲に収める
-    return int(np.clip(score, 0, 100))
+    # 明度差でメリハリ評価
+    if v_diff > 80 and s_diff < 80:
+        offset += 5  # トーン差が効いてる
+    elif v_diff < 20 and 40 < s_avg < 160:
+        offset -= 5  # 地味に見える可能性
 
+    # ネオンカラーを控えめに評価
+    if s_avg > 200 and v_avg > 220:
+        offset -= 5
+
+    # 類似色でのトーン構成
+    if h_diff < 30 and v_diff > 50 and s_diff > 50:
+        offset += 5
+
+    final_score = base_score + offset
+
+    return int(np.clip(final_score, base_min, base_max))
 # ========================
 # アドバイスを返す関数 (変更なし)
 # ========================
